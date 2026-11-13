@@ -170,7 +170,7 @@ if (!reduceMotion.matches) {
 const autoReveal = [
   ".section-heading", ".page-hero .lead", ".page-hero .eyebrow", ".page-hero .actions", ".page-hero .notice", ".breadcrumb",
   ".quality-grid article", ".detail-card", ".timeline-step", ".faq", ".service-card", ".picture-card",
-  ".project", ".sector-tool", ".tailored > div:first-child", ".split > div", ".goal-picker", ".goal-result",
+  ".project", ".case-visual", ".case-body", ".clients-strip", ".review", ".sector-tool", ".tailored > div:first-child", ".split > div", ".goal-picker", ".goal-result",
   ".experience-copy", ".experience-panel", ".contact-card", "#contact-form", ".cta > *", ".intro-tags",
   ".process-aside", ".builder-form", ".builder-summary", ".hero-sub", ".hero .actions", ".hero .eyebrow",
   ".footer-top", ".marquee", ".filters", ".filter-status", ".section-label", ".showcase-stage"

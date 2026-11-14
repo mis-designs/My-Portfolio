@@ -170,7 +170,7 @@ if (!reduceMotion.matches) {
 const autoReveal = [
   ".section-heading", ".page-hero .lead", ".page-hero .eyebrow", ".page-hero .actions", ".page-hero .notice", ".breadcrumb",
   ".quality-grid article", ".detail-card", ".timeline-step", ".faq", ".service-card", ".picture-card",
-  ".project", ".drone-viewfinder", ".use-cloud span", ".drone-banner", ".case-visual", ".case-body", ".clients-strip", ".review", ".sector-tool", ".tailored > div:first-child", ".split > div", ".goal-picker", ".goal-result",
+  ".project", ".drone-photo-frame", ".drone-gear-visual", ".gear-list li", ".drone-viewfinder", ".use-cloud span", ".drone-banner", ".case-visual", ".case-body", ".clients-strip", ".review", ".sector-tool", ".tailored > div:first-child", ".split > div", ".goal-picker", ".goal-result",
   ".experience-copy", ".experience-panel", ".contact-card", "#contact-form", ".cta > *", ".intro-tags",
   ".process-aside", ".builder-form", ".builder-summary", ".hero-sub", ".hero .actions", ".hero .eyebrow",
   ".footer-top", ".marquee", ".filters", ".filter-status", ".section-label", ".showcase-stage"
@@ -786,7 +786,11 @@ const DRONE_ICON = '<div class="drone-mark"><span class="drone-pulse"></span><sv
     map.attributionControl.setPrefix(false);
     const layer = satelliteLayer().addTo(map);
     const host = el.closest(".vf-screen, .drone-live-plate");
-    layer.once("tileload", () => host && host.classList.add("is-live"));
+    layer.once("tileload", () => {
+      if (!host) return;
+      host.classList.add("is-live");
+      if (!host.querySelector(".vf-attrib")) { const a = document.createElement("span"); a.className = "vf-attrib"; a.textContent = "Immagini © Esri, Maxar, Earthstar Geographics"; host.append(a); }
+    });
     const gps = isHero ? $("[data-gps]") : null;
     const updateGps = () => {
       if (!gps) return;
@@ -862,4 +866,42 @@ const DRONE_ICON = '<div class="drone-mark"><span class="drone-pulse"></span><sv
     window.addEventListener("scroll", () => { if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; draw(); }); } }, { passive: true });
     window.addEventListener("resize", () => { map.invalidateSize(); map.fitBounds(L.latLngBounds(route), { padding: [70, 70] }); draw(); });
   }
+})();
+
+/* ---------- Mobile carousels: pagination dots ---------- */
+(function mobileCarousels() {
+  const mq = window.matchMedia("(max-width: 680px)");
+  const tracks = $$(".services-list, .quality-grid, .detail-grid, .picture-grid");
+  const setups = [];
+  tracks.forEach((track) => {
+    const items = () => [...track.querySelectorAll(":scope > *, :scope > .picture-column > *")].filter((el) => getComputedStyle(el).display !== "contents" && !el.classList.contains("picture-column"));
+    const dots = document.createElement("div");
+    dots.className = "m-dots";
+    dots.setAttribute("aria-hidden", "true");
+    track.after(dots);
+    const build = () => {
+      const list = items();
+      dots.replaceChildren(...list.map((el, i) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.tabIndex = -1;
+        b.addEventListener("click", () => track.scrollBy({ left: el.getBoundingClientRect().left - track.getBoundingClientRect().left - 16, behavior: "smooth" }));
+        return b;
+      }));
+      update();
+    };
+    const update = () => {
+      const list = items();
+      if (!list.length) return;
+      let idx = 0, best = Infinity;
+      const tl = track.getBoundingClientRect().left + 16;
+      list.forEach((el, i) => { const d = Math.abs(el.getBoundingClientRect().left - tl); if (d < best) { best = d; idx = i; } });
+      [...dots.children].forEach((b, i) => b.setAttribute("aria-current", String(i === idx)));
+    };
+    track.addEventListener("scroll", () => requestAnimationFrame(update), { passive: true });
+    setups.push(build);
+  });
+  const run = () => setups.forEach((fn) => fn());
+  run();
+  mq.addEventListener("change", run);
 })();

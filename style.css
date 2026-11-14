@@ -1384,3 +1384,17 @@ body { overflow-x: clip; }
   .drone-photo-card .accent-word { background: linear-gradient(100deg, var(--text), var(--accent) 50%, var(--violet)); -webkit-background-clip: text; background-clip: text; }
   .drone-photo-card p:not(.eyebrow) { color: var(--muted); }
 }
+/* Narrow phones: header must always fit */
+.header-inner { min-width: 0; }
+.brand { min-width: 0; flex-shrink: 1; }
+@media (max-width: 960px) { .menu-toggle, .theme-toggle { flex-shrink: 0; } }
+@media (max-width: 420px) {
+  .header-inner { gap: 6px; padding: 7px 7px 7px 16px; min-height: 58px; }
+  .brand { font-size: 17px; }
+  .brand .icon { width: 15px; height: 15px; margin-left: 5px; }
+  .theme-toggle { width: 42px; height: 42px; margin-left: auto; }
+  .menu-toggle { gap: 0; min-height: 42px; padding: 0 13px; }
+  .menu-toggle > span:first-child { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .eyebrow { font-size: 10.5px; letter-spacing: .12em; }
+}
+@media (max-width: 340px) { .brand { font-size: 15.5px; } .brand .icon { display: none; } }

@@ -1146,3 +1146,39 @@ body:has(.visual-dialog[open]) { overflow: hidden; }
 .timeline-section .timeline-step { grid-template-columns: 200px 1fr; }
 @media (max-width: 680px) { .timeline-section .timeline-step { grid-template-columns: 1fr; } .vf-drone { top: -16%; right: -3%; width: 32%; } }
 .vf-res { right: auto; left: 50%; translate: -50% 0; }
+
+/* Real satellite layers */
+.vf-live, .live-map { position: absolute; inset: 0; z-index: 1; background: transparent !important; opacity: 0; transition: opacity 1.2s var(--ease); }
+.is-live > .vf-live, .is-live > .live-map { opacity: 1; }
+.is-live > .pan-map, .is-live > .flight-map { visibility: hidden; }
+.vf-screen > .vf-live { inset: -30% -20%; transform: perspective(1000px) rotateX(32deg) scale(1.05); transform-origin: 50% 60%; }
+.vf-screen > *:not(.vf-live):not(.pan-map) { z-index: 2; }
+.vf-screen .vf-vignette, .vf-screen .vf-grid, .vf-screen .vf-cross, .vf-screen .vf-corners { position: absolute; }
+.vf-screen.is-live .vf-vignette { background: radial-gradient(85% 75% at 50% 45%, transparent 50%, rgba(5, 8, 14, .6)), linear-gradient(180deg, rgba(5, 8, 14, .25), transparent 25%, transparent 75%, rgba(5, 8, 14, .35)); }
+.drone-live-plate { position: absolute; inset: 0; overflow: hidden; background: var(--map-bg); border-radius: inherit; }
+.drone-live-plate > .vf-live { inset: -25% -15%; transform: perspective(900px) rotateX(30deg); transform-origin: 50% 60%; }
+.drone-live-plate > .pan-map { animation-duration: 30s; }
+.drone-live-plate > *:not(.vf-live):not(.pan-map) { z-index: 2; }
+.drone-live-plate .vf-vignette { position: absolute; inset: 0; background: radial-gradient(85% 75% at 50% 45%, transparent 50%, rgba(5, 8, 14, .55)); }
+.drone-live-plate .vf-corners i { width: 26px; height: 26px; }
+.drone-live-plate .vf-rec { left: 24px; top: 22px; }
+.drone-live-plate .vf-res { left: auto; right: 24px; top: 22px; translate: none; }
+.drone-live-plate .vf-cross { width: 34px; height: 34px; }
+.service-card.featured .service-plate { position: relative; }
+.service-card.featured .service-num { z-index: 3; }
+.drone-banner .drone-live-plate { position: relative; aspect-ratio: 3 / 2; border-radius: 24px; }
+.leaflet-container { font-family: "Manrope", sans-serif; }
+.leaflet-container .leaflet-control-attribution { background: rgba(8, 12, 20, .55); color: rgba(255, 255, 255, .75); font-size: 9.5px; padding: 2px 8px; border-radius: 8px 0 0 0; backdrop-filter: blur(6px); }
+.leaflet-container .leaflet-control-attribution a { color: #fff; }
+.vf-screen .leaflet-control-attribution, .drone-live-plate .leaflet-control-attribution { transform: none; }
+.map-frame > .live-map { z-index: 1; }
+.map-frame .map-hud { position: absolute; inset: 0; z-index: 500; pointer-events: none; }
+.map-caption { margin-top: 14px; font-size: 12.5px; color: var(--muted); }
+.sat-pin { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: rgba(8, 12, 20, .72); color: #fff; font: 700 13px/1 "Manrope", sans-serif; border: 2px solid #fff; box-shadow: 0 6px 18px rgba(0, 0, 0, .45); transition: background .4s, transform .5s var(--ease); }
+.sat-pin.is-on { background: #4a6cff; transform: scale(1.12); }
+.drone-mark { position: relative; width: 64px; height: 64px; filter: drop-shadow(0 10px 8px rgba(0, 0, 0, .55)); }
+.drone-mark svg { position: relative; width: 100%; height: 100%; }
+.drone-pulse { position: absolute; inset: 14px; border-radius: 50%; border: 2px solid #fff; animation: dpulse 1.8s ease-out infinite; }
+@keyframes dpulse { from { transform: scale(.6); opacity: .9; } to { transform: scale(2.2); opacity: 0; } }
+.vf-gps [data-gps] { color: #fff !important; }
+.notfound { min-height: 62vh; display: flex; flex-direction: column; justify-content: center; }

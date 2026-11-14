@@ -120,7 +120,7 @@ const pageReady = new Promise((resolve) => {
     const url = new URL(link.href, location.href);
     if (link.target === "_blank" || url.origin !== location.origin || url.protocol.startsWith("mailto")) return;
     if (url.pathname === location.pathname && url.hash) return;
-    if (!/\.html$|\/$/.test(url.pathname)) return;
+    if (!/(\.html|\/|\/[^./]+)$/.test(url.pathname)) return;
     event.preventDefault();
     curtain.classList.add("on");
     setTimeout(() => { location.href = url.href; }, 380);
@@ -462,9 +462,9 @@ function animateSwap(el) {
 }
 
 const goalContent = {
-  web: ["Un sito che racconta il tuo valore.", "Presenta la tua attività e rendi semplice il primo contatto.", "siti-web.html"],
-  app: ["Uno strumento che segue il tuo lavoro.", "Riunisci operazioni e informazioni in un’applicazione su misura.", "applicazioni.html"],
-  campaign: ["Una pagina che mette a fuoco la tua offerta.", "Accompagna le persone dall’annuncio a una richiesta chiara.", "campagne.html"],
+  web: ["Un sito che racconta il tuo valore.", "Presenta la tua attività e rendi semplice il primo contatto.", "/servizi/siti-web/"],
+  app: ["Uno strumento che segue il tuo lavoro.", "Riunisci operazioni e informazioni in un’applicazione su misura.", "/servizi/applicazioni/"],
+  campaign: ["Una pagina che mette a fuoco la tua offerta.", "Accompagna le persone dall’annuncio a una richiesta chiara.", "/servizi/campagne/"],
 };
 $$("[data-goal]").forEach((button) => {
   button.addEventListener("click", () => {
@@ -591,7 +591,7 @@ sectorButtons.forEach((button) => {
       item.textContent = text;
       return item;
     }));
-    $("#sector-link").href = "contatti.html?servizio=" + service;
+    $("#sector-link").href = "/contatti/?servizio=" + service;
     animateSwap($(".sector-result"));
     updateProgress();
   });
@@ -606,7 +606,7 @@ if (visualDialog) {
       visualTrigger = button;
       $("#visual-title").textContent = button.dataset.title;
       const image = $("#visual-image");
-      image.src = "assets/images/" + button.dataset.visual;
+      image.src = "/assets/images/" + button.dataset.visual;
       image.alt = button.dataset.title + ", riferimento visivo fornito";
       visualDialog.showModal();
     });
@@ -667,7 +667,7 @@ if (visualDialog) {
       "",
       "Ti racconto qualcosa in più sulla mia attività: ",
     ].join("\n");
-    out.link.href = "contatti.html?servizio=" + serviceMap[s.type] + "&brief=" + encodeURIComponent(brief);
+    out.link.href = "/contatti/?servizio=" + serviceMap[s.type] + "&brief=" + encodeURIComponent(brief);
   }
   builder.addEventListener("input", render);
   builder.addEventListener("change", render);
@@ -705,6 +705,7 @@ if (visualDialog) {
   const marks = [0, 0.42, 1];
   let current = -1;
   function frame() {
+    if (section.querySelector(".map-frame.is-live")) return;
     const rect = section.getBoundingClientRect();
     const vh = window.innerHeight;
     let p = (vh * 0.6 - rect.top) / (rect.height - vh * 0.3);
@@ -728,4 +729,136 @@ if (visualDialog) {
   window.addEventListener("scroll", () => { if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; frame(); }); } }, { passive: true });
   window.addEventListener("resize", frame);
   frame();
+})();
+
+/* =========================================================
+   Real satellite maps (Leaflet + Esri World Imagery)
+   Falls back to the illustrated map when tiles can't load.
+   ========================================================= */
+const DRONE_ROUTE = [
+  [42.62585, 12.10330], [42.62540, 12.10620], [42.62600, 12.10880],
+  [42.62700, 12.11020], [42.62745, 12.11180], [42.62770, 12.11330], [42.62790, 12.11420]
+];
+const DRONE_MARKS = [0, 0.5, 1];
+function catmull(points, samples) {
+  const out = [];
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[Math.max(0, i - 1)], p1 = points[i], p2 = points[i + 1], p3 = points[Math.min(points.length - 1, i + 2)];
+    for (let t = 0; t < 1; t += 1 / samples) {
+      const t2 = t * t, t3 = t2 * t;
+      out.push([0, 1].map((k) => 0.5 * ((2 * p1[k]) + (-p0[k] + p2[k]) * t + (2 * p0[k] - 5 * p1[k] + 4 * p2[k] - p3[k]) * t2 + (-p0[k] + 3 * p1[k] - 3 * p2[k] + p3[k]) * t3)));
+    }
+  }
+  out.push(points[points.length - 1]);
+  return out;
+}
+function satelliteLayer() {
+  return L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+    maxZoom: 19, maxNativeZoom: 19, crossOrigin: true,
+    attribution: "Immagini © Esri, Maxar, Earthstar Geographics",
+  });
+}
+function staticMap(el, center, zoom) {
+  return L.map(el, {
+    center, zoom, zoomControl: false, attributionControl: true, dragging: false, scrollWheelZoom: false,
+    doubleClickZoom: false, boxZoom: false, keyboard: false, touchZoom: false, tap: false, zoomSnap: 0.25,
+    fadeAnimation: true, inertia: false,
+  });
+}
+function formatDMS(v, pos, neg) {
+  const a = Math.abs(v), d = Math.floor(a), m = Math.round((a - d) * 60);
+  return (v >= 0 ? pos : neg) + " " + d + "°" + String(m).padStart(2, "0") + "′";
+}
+const DRONE_ICON = '<div class="drone-mark"><span class="drone-pulse"></span><svg viewBox="0 0 64 64" aria-hidden="true"><g class="dm-rot"><g stroke="#11151b" stroke-width="5" stroke-linecap="round"><line x1="16" y1="16" x2="48" y2="48"/><line x1="48" y1="16" x2="16" y2="48"/></g><g fill="rgba(240,244,250,.28)" stroke="rgba(255,255,255,.55)" stroke-width="1"><circle cx="14" cy="14" r="11"/><circle cx="50" cy="14" r="11"/><circle cx="14" cy="50" r="11"/><circle cx="50" cy="50" r="11"/></g><g fill="#0d1117"><circle cx="14" cy="14" r="3"/><circle cx="50" cy="14" r="3"/><circle cx="14" cy="50" r="3"/><circle cx="50" cy="50" r="3"/></g><rect x="25" y="20" width="14" height="24" rx="6" fill="#2b313a" stroke="#596270" stroke-width="1.2"/><rect x="28" y="38" width="8" height="7" rx="2.5" fill="#0b0e13"/><circle cx="32" cy="24" r="1.6" fill="#7fe3c6"/></g></svg></div>';
+
+(function liveMaps() {
+  const plates = $$("[data-drone-live]");
+  const flightEl = $("#flight-live");
+  if ((!plates.length && !flightEl) || typeof window.L === "undefined") return;
+  const route = catmull(DRONE_ROUTE, 30);
+
+  // Panning "camera" views (hero viewfinder and service cards)
+  plates.forEach((el) => {
+    const isHero = el.dataset.droneLive === "hero";
+    const map = staticMap(el, route[0], isHero ? 17.5 : 17);
+    if (!isHero) map.attributionControl.setPrefix(false);
+    map.attributionControl.setPrefix(false);
+    const layer = satelliteLayer().addTo(map);
+    const host = el.closest(".vf-screen, .drone-live-plate");
+    layer.once("tileload", () => host && host.classList.add("is-live"));
+    const gps = isHero ? $("[data-gps]") : null;
+    const updateGps = () => {
+      if (!gps) return;
+      const c = map.getCenter();
+      gps.textContent = formatDMS(c.lat, "N", "S") + " " + formatDMS(c.lng, "E", "W");
+    };
+    map.on("move", updateGps);
+    updateGps();
+    if (reduceMotion.matches) return;
+    let i = 0;
+    let running = false;
+    const step = () => {
+      if (!running) return;
+      i = (i + 6) % route.length;
+      map.panTo(route[i], { animate: true, duration: 4.2, easeLinearity: 1 });
+    };
+    let timer;
+    const io = new IntersectionObserver(([entry]) => {
+      running = entry.isIntersecting;
+      clearInterval(timer);
+      if (running) { step(); timer = setInterval(step, 4200); }
+    });
+    io.observe(el);
+    window.addEventListener("resize", () => map.invalidateSize());
+  });
+
+  // Scroll-driven flight path over real imagery
+  if (flightEl) {
+    const frame = flightEl.closest(".map-frame");
+    const section = $(".map-anim");
+    const map = staticMap(flightEl, route[Math.floor(route.length / 2)], 16.5);
+    map.attributionControl.setPrefix(false);
+    const layer = satelliteLayer().addTo(map);
+    layer.once("tileload", () => frame.classList.add("is-live"));
+    map.fitBounds(L.latLngBounds(route), { padding: [70, 70] });
+    L.polyline(route, { color: "#ffffff", weight: 2, opacity: 0.55, dashArray: "2 9", lineCap: "round" }).addTo(map);
+    const glow = L.polyline([], { color: "#7d97ff", weight: 10, opacity: 0.35, lineCap: "round" }).addTo(map);
+    const line = L.polyline([], { color: "#ffffff", weight: 3.5, opacity: 1, lineCap: "round" }).addTo(map);
+    const pins = DRONE_MARKS.map((m, idx) => L.marker(route[Math.round(m * (route.length - 1))], {
+      icon: L.divIcon({ className: "", html: '<span class="sat-pin">' + "ABC"[idx] + "</span>", iconSize: [34, 34], iconAnchor: [17, 17] }),
+      interactive: false, keyboard: false,
+    }).addTo(map));
+    const drone = L.marker(route[0], {
+      icon: L.divIcon({ className: "", html: DRONE_ICON, iconSize: [64, 64], iconAnchor: [32, 32] }),
+      interactive: false, keyboard: false, zIndexOffset: 1000,
+    }).addTo(map);
+    const pct = $("[data-flight-pct]");
+    const steps = $$(".flight-step", section);
+    let current = -1;
+    const draw = () => {
+      if (!frame.classList.contains("is-live")) return;
+      const rect = section.getBoundingClientRect();
+      const vh = window.innerHeight;
+      let p = (vh * 0.6 - rect.top) / (rect.height - vh * 0.3);
+      p = reduceMotion.matches ? 1 : Math.max(0, Math.min(1, p));
+      const k = Math.max(1, Math.round(p * (route.length - 1)));
+      const done = route.slice(0, k + 1);
+      line.setLatLngs(done); glow.setLatLngs(done);
+      const here = route[k], prev = route[Math.max(0, k - 1)];
+      drone.setLatLng(here);
+      const a = map.latLngToLayerPoint(prev), b = map.latLngToLayerPoint(here);
+      const ang = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI + 90;
+      const rot = drone.getElement() && drone.getElement().querySelector(".dm-rot");
+      if (rot && (a.x !== b.x || a.y !== b.y)) rot.setAttribute("transform", "rotate(" + ang.toFixed(1) + " 32 32)");
+      if (pct) pct.textContent = Math.round(p * 100);
+      let active = 0;
+      DRONE_MARKS.forEach((m, i) => { if (p >= m - 0.02) active = i; });
+      pins.forEach((pin, i) => { const e = pin.getElement(); if (e) e.firstChild.classList.toggle("is-on", p >= DRONE_MARKS[i] - 0.02); });
+      if (active !== current) { current = active; steps.forEach((s, i) => s.classList.toggle("is-active", i === active)); }
+    };
+    layer.once("tileload", draw);
+    let queued = false;
+    window.addEventListener("scroll", () => { if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; draw(); }); } }, { passive: true });
+    window.addEventListener("resize", () => { map.invalidateSize(); map.fitBounds(L.latLngBounds(route), { padding: [70, 70] }); draw(); });
+  }
 })();

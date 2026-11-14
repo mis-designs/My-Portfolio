@@ -1414,3 +1414,39 @@ body { overflow-x: clip; }
 .flyaway-tag { position: absolute; left: 20px; top: 18px; z-index: 2; display: inline-flex; align-items: center; gap: 8px; padding: 8px 13px; border: 1px solid rgba(255, 255, 255, .5); border-radius: 999px; background: rgba(10, 16, 28, .5); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); color: #fff; font-size: 12px; font-weight: 600; letter-spacing: .02em; pointer-events: none; }
 .flyaway-tag b { width: 7px; height: 7px; border-radius: 50%; background: #1766ff; box-shadow: 0 0 0 4px rgba(23, 102, 255, .28); }
 @media (max-width: 680px) { .flyaway-frame { border-radius: 22px; } .flyaway-tag { left: 10px; top: 10px; padding: 6px 10px; font-size: 11px; } }
+
+/* Drone film in the "In quota" card (image stays underneath as fallback) */
+.drone-photo-frame > video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 35%; opacity: 0; transition: opacity .9s var(--ease); pointer-events: none; }
+.drone-photo-frame.is-playing > video { opacity: 1; }
+.drone-photo-frame { overflow: clip; }   /* cannot be scrolled internally, so the film never slips out of its frame */
+.drone-sound { position: absolute; z-index: 3; right: clamp(20px, 4vw, 56px); bottom: clamp(20px, 4vw, 56px); display: inline-flex; align-items: center; gap: 9px; padding: 11px 17px 11px 14px; border: 1px solid rgba(255, 255, 255, .3); border-radius: 999px; background: rgba(10, 16, 28, .5); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); color: #fff; font: 600 13px/1 inherit; font-family: inherit; cursor: pointer; transition: background .3s, border-color .3s; }
+.drone-sound[hidden] { display: none; }
+.drone-sound:hover, .drone-sound:focus-visible { background: rgba(10, 16, 28, .75); border-color: rgba(255, 255, 255, .65); }
+.drone-sound svg { width: 18px; height: 18px; }
+.drone-sound .s-on, .drone-sound[aria-pressed="true"] .s-off { display: none; }
+.drone-sound[aria-pressed="true"] .s-on { display: block; }
+@media (max-width: 680px) {
+  .drone-photo-frame > video { inset: auto; top: 0; left: 0; height: auto; aspect-ratio: 1600 / 920; }
+  .drone-sound { right: auto; bottom: auto; left: 14px; top: 14px; padding: 9px 13px 9px 11px; font-size: 12px; }
+}
+
+/* Services page: quick links + "click me" hint on the drone card */
+.service-jump { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 38px; }
+.service-jump a { display: inline-flex; align-items: center; gap: 9px; padding: 11px 18px; border: 1px solid var(--line-strong); border-radius: 999px; font-size: 14.5px; font-weight: 500; transition: border-color .3s, background .3s, color .3s, transform .5s var(--ease); }
+.service-jump a:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-2px); }
+.service-jump a.is-new { border-color: transparent; background: linear-gradient(100deg, var(--accent), var(--violet)); color: #fff; }
+.service-jump a.is-new:hover { color: #fff; }
+.service-jump a.is-new b { width: 8px; height: 8px; border-radius: 50%; background: #fff; animation: hintDot 1.8s ease-out infinite; }
+.service-jump a.is-new span { padding: 3px 8px; border-radius: 999px; background: rgba(255, 255, 255, .22); font: 500 10.5px/1.4 var(--mono); letter-spacing: .1em; text-transform: uppercase; }
+.service-card.featured { animation: cardGlow 3.2s ease-in-out infinite; }
+.drone-live-plate > .click-hint { position: absolute; z-index: 3; left: 50%; bottom: 18px; display: inline-flex; align-items: center; gap: 10px; padding: 10px 18px 10px 14px; border-radius: 999px; background: #fff; color: #0c1119; font-size: 13.5px; font-weight: 600; white-space: nowrap; box-shadow: 0 14px 34px -12px rgba(0, 0, 0, .6); transform: translateX(-50%); animation: hintBob 2.4s ease-in-out infinite; pointer-events: none; }
+.click-hint i { position: relative; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+.click-hint i::after { content: ""; position: absolute; inset: -6px; border: 2px solid var(--accent); border-radius: 50%; animation: hintRing 1.8s ease-out infinite; }
+.service-card.featured:hover .click-hint { background: var(--accent); color: #fff; }
+.service-card.featured:hover .click-hint i { background: #fff; }
+@keyframes hintBob { 0%, 100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-6px); } }
+@keyframes hintRing { 0% { transform: scale(.5); opacity: .9; } 100% { transform: scale(1.7); opacity: 0; } }
+@keyframes hintDot { 0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, .7); } 100% { box-shadow: 0 0 0 9px rgba(255, 255, 255, 0); } }
+@keyframes cardGlow { 0%, 100% { box-shadow: 0 0 0 0 rgba(107, 139, 255, 0); border-color: var(--line); } 50% { box-shadow: 0 0 0 5px rgba(107, 139, 255, .14), 0 30px 70px -40px rgba(107, 139, 255, .55); border-color: var(--accent); } }
+@media (max-width: 680px) { .service-jump { margin-top: 26px; gap: 8px; } .service-jump a { padding: 9px 14px; font-size: 13.5px; } .drone-live-plate > .click-hint { bottom: 12px; font-size: 12.5px; padding: 8px 14px 8px 11px; } }
+@media (prefers-reduced-motion: reduce) { .service-card.featured, .click-hint, .click-hint i::after, .service-jump a.is-new b { animation: none !important; } }

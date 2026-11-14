@@ -905,3 +905,63 @@ const DRONE_ICON = '<div class="drone-mark"><span class="drone-pulse"></span><sv
   run();
   mq.addEventListener("change", run);
 })();
+
+/* ---------- Drone film: loads when visible, plays with gentle sound, can be muted ---------- */
+(() => {
+  const video = document.querySelector("[data-drone-video]");
+  if (!video || !("IntersectionObserver" in window) || reduceMotion.matches) return;   // the photo stays as fallback
+  const frame = video.closest(".drone-photo-frame");
+  const button = frame.querySelector("[data-drone-sound]");
+  const VOLUME = 0.3;                                   // never full volume
+  let wantSound = true, loaded = false, inView = false, fade = 0;
+  try { if (sessionStorage.getItem("md-drone-sound") === "off") wantSound = false; } catch (e) {}
+
+  const label = () => {
+    const on = !video.muted;
+    button.setAttribute("aria-pressed", String(on));
+    button.setAttribute("aria-label", on ? "Disattiva l’audio del video" : "Attiva l’audio del video");
+    button.querySelector("span").textContent = on ? "Audio attivo" : "Attiva audio";
+  };
+  const fadeIn = () => {
+    cancelAnimationFrame(fade);
+    try { video.volume = 0; } catch (e) {}
+    const step = () => {
+      const next = Math.min(VOLUME, video.volume + 0.01);
+      try { video.volume = next; } catch (e) { return; }
+      if (next < VOLUME) fade = requestAnimationFrame(step);
+    };
+    step();
+  };
+  const unmute = () => { video.muted = false; fadeIn(); label(); };
+  const play = () => {
+    if (!loaded) { video.src = video.dataset.src; loaded = true; }
+    video.muted = !wantSound;
+    if (wantSound) fadeIn();
+    const started = video.play();
+    label();
+    // Browsers block sound until the visitor has interacted with the page: fall back to silent playback.
+    if (started) started.catch(() => { video.muted = true; label(); video.play().catch(() => {}); });
+  };
+
+  video.addEventListener("playing", () => { frame.classList.add("is-playing"); button.hidden = false; });
+  video.addEventListener("error", () => { frame.classList.remove("is-playing"); button.hidden = true; });
+  button.addEventListener("click", () => {
+    wantSound = video.muted;
+    try { sessionStorage.setItem("md-drone-sound", wantSound ? "on" : "off"); } catch (e) {}
+    if (wantSound) { unmute(); if (video.paused) video.play().catch(() => {}); }
+    else { cancelAnimationFrame(fade); video.muted = true; label(); }
+  });
+  // First tap or key press anywhere: sound can start if the visitor has not muted it.
+  const onGesture = (event) => {
+    if (button.contains(event.target)) return;
+    if (wantSound && inView && video.muted && !video.paused) unmute();
+  };
+  window.addEventListener("pointerdown", onGesture, { passive: true });
+  window.addEventListener("keydown", onGesture);
+
+  new IntersectionObserver(([entry]) => {
+    inView = entry.isIntersecting;
+    if (inView) play(); else video.pause();
+  }, { threshold: 0.35 }).observe(frame);
+  document.addEventListener("visibilitychange", () => { if (document.hidden) video.pause(); else if (inView) play(); });
+})();

@@ -1450,3 +1450,12 @@ body { overflow-x: clip; }
 @keyframes cardGlow { 0%, 100% { box-shadow: 0 0 0 0 rgba(107, 139, 255, 0); border-color: var(--line); } 50% { box-shadow: 0 0 0 5px rgba(107, 139, 255, .14), 0 30px 70px -40px rgba(107, 139, 255, .55); border-color: var(--accent); } }
 @media (max-width: 680px) { .service-jump { margin-top: 26px; gap: 8px; } .service-jump a { padding: 9px 14px; font-size: 13.5px; } .drone-live-plate > .click-hint { bottom: 12px; font-size: 12.5px; padding: 8px 14px 8px 11px; } }
 @media (prefers-reduced-motion: reduce) { .service-card.featured, .click-hint, .click-hint i::after, .service-jump a.is-new b { animation: none !important; } }
+
+/* Map flight: sound toggle in the HUD */
+.map-hud .map-sound { right: 20px; bottom: 14px; border: 0; cursor: pointer; pointer-events: auto; transition: background .3s; }
+.map-hud .map-sound:hover, .map-hud .map-sound:focus-visible { background: var(--accent); }
+.map-sound svg { width: 14px; height: 14px; }
+.map-sound em { font-style: normal; }
+.map-sound .s-on, .map-sound[aria-pressed="true"] .s-off { display: none; }
+.map-sound[aria-pressed="true"] .s-on { display: block; }
+.map-sound[hidden] { display: none; }

@@ -932,8 +932,20 @@ const DRONE_ICON = '<div class="drone-mark"><span class="drone-pulse"></span><sv
     };
     step();
   };
+  const fadeOut = () => {
+    cancelAnimationFrame(fade);
+    const step = () => {
+      const next = video.volume - 0.006;
+      if (video.muted || video.paused || next <= 0) { video.pause(); return; }
+      try { video.volume = next; } catch (e) { video.pause(); return; }
+      if (video.volume > next + 0.004) { video.pause(); return; }   // volume cannot be changed here (iPhone): just stop
+      fade = requestAnimationFrame(step);
+    };
+    step();
+  };
   const unmute = () => { video.muted = false; fadeIn(); label(); };
   const play = () => {
+    cancelAnimationFrame(fade);
     if (!loaded) { video.src = video.dataset.src; loaded = true; }
     video.muted = !wantSound;
     if (wantSound) fadeIn();
@@ -961,7 +973,99 @@ const DRONE_ICON = '<div class="drone-mark"><span class="drone-pulse"></span><sv
 
   new IntersectionObserver(([entry]) => {
     inView = entry.isIntersecting;
-    if (inView) play(); else video.pause();
+    if (inView) play(); else fadeOut();
   }, { threshold: 0.35 }).observe(frame);
   document.addEventListener("visibilitychange", () => { if (document.hidden) video.pause(); else if (inView) play(); });
+})();
+
+/* ---------- Map flight: propeller sound that follows the scroll ---------- */
+(() => {
+  const section = document.querySelector(".map-anim");
+  const button = document.querySelector("[data-map-sound]");
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!section || !button) return;
+  if (!AC || reduceMotion.matches) { button.hidden = true; return; }
+  let ctx = null, master, shelf, humGain, hum = null, loading = false;
+  let want = true, inView = false, lastP = null, lastTime = 0, speed = 0, readyBeep = true, doneBeep = true, raf = 0;
+  try { if (sessionStorage.getItem("md-drone-sound") === "off") want = false; } catch (e) {}
+
+  const audible = () => !!ctx && ctx.state === "running" && want;
+  const label = () => {
+    const on = audible();
+    button.setAttribute("aria-pressed", String(on));
+    button.setAttribute("aria-label", on ? "Disattiva il suono del drone" : "Attiva il suono del drone");
+    button.querySelector("em").textContent = on ? "Suono attivo" : "Attiva suono";
+  };
+  // same scroll progress the flight path uses: 0 at the start pin, 1 at the arrival
+  const progress = () => {
+    const rect = section.getBoundingClientRect(), vh = window.innerHeight;
+    return Math.max(0, Math.min(1, (vh * 0.6 - rect.top) / (rect.height - vh * 0.3)));
+  };
+  const load = () => {
+    if (hum || loading) return;
+    loading = true;
+    fetch("/assets/audio/drone-hum.mp3").then((r) => r.arrayBuffer())
+      .then((data) => new Promise((resolve, reject) => ctx.decodeAudioData(data, resolve, reject)))
+      .then((buffer) => {
+        hum = ctx.createBufferSource(); hum.buffer = buffer; hum.loop = true;
+        hum.loopStart = 0.4; hum.loopEnd = 9.4;            // exactly one period of the recording: no click at the seam
+        hum.connect(shelf); hum.start(0, 0.4);
+      }).catch(() => { loading = false; });
+  };
+  const build = () => {
+    if (ctx) return;
+    ctx = new AC();
+    master = ctx.createGain(); master.gain.value = 0; master.connect(ctx.destination);
+    humGain = ctx.createGain(); humGain.gain.value = 0.1; humGain.connect(master);
+    shelf = ctx.createBiquadFilter(); shelf.type = "lowshelf"; shelf.frequency.value = 190; shelf.gain.value = 0; shelf.connect(humGain);
+    ctx.onstatechange = label;
+    load();
+  };
+  const wake = () => { if (!want) return; build(); if (ctx.state === "suspended") ctx.resume().catch(() => {}); };
+  const tone = (freq, delay, length, volume) => {
+    const osc = ctx.createOscillator(), gain = ctx.createGain(), at = ctx.currentTime + delay;
+    osc.type = "sine"; osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0, at); gain.gain.linearRampToValueAtTime(volume, at + 0.012); gain.gain.exponentialRampToValueAtTime(0.0008, at + length);
+    osc.connect(gain).connect(master); osc.start(at); osc.stop(at + length + 0.05);
+  };
+  const beepReady = () => { tone(880, 0, 0.11, 0.1); tone(880, 0.15, 0.11, 0.1); };                               // take-off: two short beeps
+  const beepDone = () => { tone(784, 0, 0.16, 0.1); tone(988, 0.13, 0.16, 0.1); tone(1319, 0.26, 0.5, 0.11); };   // arrival: rising three notes
+
+  const tick = () => {
+    const now = performance.now(), p = progress();
+    if (lastP !== null) { const dt = Math.max(0.016, (now - lastTime) / 1000); speed += ((p - lastP) / dt - speed) * 0.16; }
+    lastP = p; lastTime = now;
+    if (audible()) {
+      const t = ctx.currentTime, push = Math.min(1, Math.abs(speed) / 0.3), forward = speed >= 0;
+      master.gain.setTargetAtTime(0.5, t, 0.35);
+      humGain.gain.setTargetAtTime(0.1 + (forward ? 0.32 : 0.24) * push, t, 0.12);                       // soft hover, louder while flying
+      shelf.gain.setTargetAtTime(9 * push, t, 0.15);                                                     // heavier, fuller tone under load
+      if (hum) hum.playbackRate.setTargetAtTime(1 + (forward ? 0.2 : -0.16) * push, t, 0.15);            // pitch up going forward, down coming back
+      if (readyBeep && p > 0.015 && speed > 0) { readyBeep = false; beepReady(); }
+      if (p < 0.004) readyBeep = true;
+      if (doneBeep && p > 0.992) { doneBeep = false; beepDone(); }
+      if (p < 0.9) doneBeep = true;
+    }
+    raf = requestAnimationFrame(tick);
+  };
+  const fadeAway = (seconds) => { if (ctx && master) master.gain.setTargetAtTime(0, ctx.currentTime, seconds); };   // never a hard cut
+
+  new IntersectionObserver(([entry]) => {
+    inView = entry.isIntersecting;
+    cancelAnimationFrame(raf);
+    if (inView) { lastP = null; speed = 0; raf = requestAnimationFrame(tick); } else fadeAway(0.45);
+  }, { threshold: 0.12 }).observe(section);
+  document.addEventListener("visibilitychange", () => { if (document.hidden) fadeAway(0.15); });
+
+  button.addEventListener("click", () => {
+    want = !audible();
+    try { sessionStorage.setItem("md-drone-sound", want ? "on" : "off"); } catch (e) {}
+    if (want) wake(); else fadeAway(0.1);
+    label(); setTimeout(label, 250);
+  });
+  // Browsers allow sound only after a tap or key press (scrolling alone does not count).
+  const onGesture = (event) => { if (!button.contains(event.target)) wake(); };
+  window.addEventListener("pointerdown", onGesture, { passive: true });
+  window.addEventListener("keydown", onGesture);
+  label();
 })();

@@ -1459,3 +1459,5 @@ body { overflow-x: clip; }
 .map-sound .s-on, .map-sound[aria-pressed="true"] .s-off { display: none; }
 .map-sound[aria-pressed="true"] .s-on { display: block; }
 .map-sound[hidden] { display: none; }
+/* Flyaway on phones: a tall frame (picture + control bar) instead of a tiny 16:9 strip */
+@media (max-width: 680px) { .flyaway-frame { aspect-ratio: 100 / 138; } }

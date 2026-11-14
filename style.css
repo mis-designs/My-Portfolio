@@ -1398,3 +1398,11 @@ body { overflow-x: clip; }
   .eyebrow { font-size: 10.5px; letter-spacing: .12em; }
 }
 @media (max-width: 340px) { .brand { font-size: 15.5px; } .brand .icon { display: none; } }
+/* Mobile header buttons: two identical round buttons, clear of the curved edge */
+@media (max-width: 420px) {
+  .header-inner { padding-right: 9px; }
+  .theme-toggle, .menu-toggle { width: 42px; height: 42px; min-height: 42px; padding: 0; justify-content: center; border-radius: 50%; }
+  .menu-toggle { margin-left: 8px; display: inline-flex; align-items: center; }
+  .menu-lines { flex: 0 0 18px; }
+}
+@media (max-width: 960px) { .menu-toggle[aria-expanded="true"] .menu-lines::before, .menu-toggle[aria-expanded="true"] .menu-lines::after { left: 0; } }

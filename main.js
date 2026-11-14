@@ -736,8 +736,9 @@ if (visualDialog) {
    Falls back to the illustrated map when tiles can't load.
    ========================================================= */
 const DRONE_ROUTE = [
-  [42.62585, 12.10330], [42.62540, 12.10620], [42.62600, 12.10880],
-  [42.62700, 12.11020], [42.62745, 12.11180], [42.62770, 12.11330], [42.62790, 12.11420]
+  // Firenze: Duomo → Piazza della Signoria → Ponte Vecchio → Oltrarno → Santa Croce → Duomo
+  [43.77310, 11.25600], [43.77120, 11.25540], [43.76960, 11.25580], [43.76800, 11.25310],
+  [43.76620, 11.25150], [43.76640, 11.25700], [43.76840, 11.26180], [43.77060, 11.25980], [43.77310, 11.25600]
 ];
 const DRONE_MARKS = [0, 0.5, 1];
 function catmull(points, samples) {
@@ -780,7 +781,7 @@ const DRONE_ICON = '<div class="drone-mark"><span class="drone-pulse"></span><sv
   // Panning "camera" views (hero viewfinder and service cards)
   plates.forEach((el) => {
     const isHero = el.dataset.droneLive === "hero";
-    const map = staticMap(el, route[0], isHero ? 17.5 : 17);
+    const map = staticMap(el, route[0], isHero ? 17.75 : 17.25);
     if (!isHero) map.attributionControl.setPrefix(false);
     map.attributionControl.setPrefix(false);
     const layer = satelliteLayer().addTo(map);
@@ -799,7 +800,7 @@ const DRONE_ICON = '<div class="drone-mark"><span class="drone-pulse"></span><sv
     let running = false;
     const step = () => {
       if (!running) return;
-      i = (i + 6) % route.length;
+      i = (i + 4) % route.length;
       map.panTo(route[i], { animate: true, duration: 4.2, easeLinearity: 1 });
     };
     let timer;

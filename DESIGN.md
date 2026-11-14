@@ -70,3 +70,7 @@ Animazioni: preloader alla prima visita della sessione, transizioni tra pagine, 
 Funzioni nuove: configuratore di progetto in home (tipo, pagine, funzioni, tempi, livello di struttura qualitativo, nessun prezzo) che precompila il modulo contatti con ?brief=; orologio di Roma; copia email con notifica; chiusura del lightbox cliccando fuori.
 
 Immagini pesanti convertite in WebP (hero-devices, service-*, restaurant-website, hand-phone): da circa 7 MB a meno di 300 KB. I file originali restano nella cartella.
+
+## Servizio riprese con drone (novembre 2026)
+
+Pagina `riprese-drone.html`: mirino live animato (mappa in movimento, REC con timecode, telemetria ALT/SPD, bussola), drone originale in SVG con eliche animate, map animation guidata dallo scroll (il drone segue il percorso A → B → C), sei servizi, settori, processo in quattro fasi e nota sulle zone di volo. Card `assets/images/service-drone.webp` generata da illustrazione originale. Nessun marchio o modello di drone citato. Collegamenti: card "Novità" in home, banner in Servizi, opzione "Riprese con drone" nel modulo contatti e nel configuratore.

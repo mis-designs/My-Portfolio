@@ -170,7 +170,7 @@ if (!reduceMotion.matches) {
 const autoReveal = [
   ".section-heading", ".page-hero .lead", ".page-hero .eyebrow", ".page-hero .actions", ".page-hero .notice", ".breadcrumb",
   ".quality-grid article", ".detail-card", ".timeline-step", ".faq", ".service-card", ".picture-card",
-  ".project", ".case-visual", ".case-body", ".clients-strip", ".review", ".sector-tool", ".tailored > div:first-child", ".split > div", ".goal-picker", ".goal-result",
+  ".project", ".drone-viewfinder", ".use-cloud span", ".drone-banner", ".case-visual", ".case-body", ".clients-strip", ".review", ".sector-tool", ".tailored > div:first-child", ".split > div", ".goal-picker", ".goal-result",
   ".experience-copy", ".experience-panel", ".contact-card", "#contact-form", ".cta > *", ".intro-tags",
   ".process-aside", ".builder-form", ".builder-summary", ".hero-sub", ".hero .actions", ".hero .eyebrow",
   ".footer-top", ".marquee", ".filters", ".filter-status", ".section-label", ".showcase-stage"
@@ -498,7 +498,7 @@ experienceButtons.forEach((button) => {
 
 const form = $("#contact-form");
 if (form) {
-  const options = { web: "un sito web", siti: "un sito web", app: "un’applicazione", campaign: "una campagna", help: "un consiglio sul mio progetto" };
+  const options = { web: "un sito web", siti: "un sito web", app: "un’applicazione", campaign: "una campagna", drone: "riprese aeree con drone", help: "un consiglio sul mio progetto" };
   const params = new URLSearchParams(window.location.search);
   const requestedService = params.get("servizio");
   const serviceValue = requestedService === "siti" ? "web" : requestedService;
@@ -622,8 +622,8 @@ if (visualDialog) {
 (function projectBuilder() {
   const builder = $("#builder");
   if (!builder) return;
-  const typeLabels = { web: "Sito web", app: "Applicazione su misura", campaign: "Landing page e campagna", restyling: "Restyling di un sito" };
-  const serviceMap = { web: "web", app: "app", campaign: "campaign", restyling: "web" };
+  const typeLabels = { web: "Sito web", app: "Applicazione su misura", campaign: "Landing page e campagna", restyling: "Restyling di un sito", drone: "Video con drone" };
+  const serviceMap = { web: "web", app: "app", campaign: "campaign", restyling: "web", drone: "drone" };
   const pagesInput = $("#b-pages");
   const pagesOut = $("#b-pages-out");
   const out = {
@@ -646,7 +646,7 @@ if (visualDialog) {
     pagesInput.style.setProperty("--fill", fill + "%");
     pagesOut.textContent = s.pages >= 20 ? "20+ pagine" : s.pages + (s.pages === 1 ? " pagina" : " pagine");
     // Qualitative scope indicator — no prices, just how structured the project is
-    let score = { web: 2, app: 4, campaign: 1, restyling: 2 }[s.type];
+    let score = { web: 2, app: 4, campaign: 1, restyling: 2, drone: 2 }[s.type];
     score += Math.min(3, Math.floor(s.pages / 6));
     score += s.features.length * 0.75;
     const level = Math.max(1, Math.min(10, Math.round(score)));
@@ -672,4 +672,60 @@ if (visualDialog) {
   builder.addEventListener("input", render);
   builder.addEventListener("change", render);
   render();
+})();
+
+/* =========================================================
+   Drone service: live viewfinder + scroll-driven map animation
+   ========================================================= */
+(function droneViewfinder() {
+  const tc = $("[data-timecode]");
+  if (!tc) return;
+  const alt = $("[data-alt]"), spd = $("[data-spd]"), hdg = $("[data-heading]");
+  const start = performance.now();
+  const pad = (n) => String(Math.floor(n)).padStart(2, "0");
+  setInterval(() => {
+    const t = (performance.now() - start) / 1000;
+    tc.textContent = pad(t / 3600) + ":" + pad((t / 60) % 60) + ":" + pad(t % 60);
+    if (reduceMotion.matches) return;
+    alt.textContent = Math.round(96 + Math.sin(t / 3) * 14);
+    spd.textContent = (6 + Math.sin(t / 2.2) * 1.8).toFixed(1);
+    hdg.textContent = "↑ " + String(Math.round(40 + Math.sin(t / 5) * 18)).padStart(3, "0") + "°";
+  }, 250);
+})();
+
+(function mapAnimation() {
+  const section = $(".map-anim");
+  const path = $("#flight-path");
+  const drone = $("#map-drone");
+  if (!section || !path || !drone) return;
+  const total = path.getTotalLength();
+  const pct = $("[data-flight-pct]");
+  const wps = $$(".m-wp", section);
+  const steps = $$(".flight-step", section);
+  const marks = [0, 0.42, 1];
+  let current = -1;
+  function frame() {
+    const rect = section.getBoundingClientRect();
+    const vh = window.innerHeight;
+    let p = (vh * 0.6 - rect.top) / (rect.height - vh * 0.3);
+    p = Math.max(0, Math.min(1, p));
+    if (reduceMotion.matches) p = 1;
+    path.style.setProperty("--draw", String(1000 - p * 1000));
+    const pt = path.getPointAtLength(p * total);
+    const ahead = path.getPointAtLength(Math.min(total, p * total + 4));
+    const angle = Math.atan2(ahead.y - pt.y, ahead.x - pt.x) * 180 / Math.PI + 90;
+    drone.setAttribute("transform", "translate(" + pt.x.toFixed(1) + " " + pt.y.toFixed(1) + ") rotate(" + angle.toFixed(1) + ")");
+    if (pct) pct.textContent = Math.round(p * 100);
+    let active = 0;
+    marks.forEach((m, i) => { if (p >= m - 0.02) active = i; });
+    wps.forEach((w, i) => w.classList.toggle("is-on", p >= marks[i] - 0.02));
+    if (active !== current) {
+      current = active;
+      steps.forEach((s, i) => s.classList.toggle("is-active", i === active));
+    }
+  }
+  let queued = false;
+  window.addEventListener("scroll", () => { if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; frame(); }); } }, { passive: true });
+  window.addEventListener("resize", frame);
+  frame();
 })();
